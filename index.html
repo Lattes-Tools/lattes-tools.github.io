@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Qualis Classification</title>
+        <meta charset="UTF-8">
+        <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+        <link href="https://cdn.jsdelivr.net/npm/papaparse@5/player/player.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <h1>Qualis Classification</h1>
+        <form id="upload-form">
+            <label>
+                Upload XML:
+                <input type="file" id="xml-upload" accept=".xml">
+            </label>
+            <label>
+                Upload CSV:
+                <input type="file" id="csv-upload" accept=".csv">
+            </label>
+            <button type="submit">Submit</button>
+        </form>
+
+        <textarea id="output" rows="10" cols="50"></textarea>
+        <button onclick="copyToClipboard()">Copy to Clipboard</button>
+
+        <script>
+            document.getElementById('upload-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var xmlFile = document.getElementById('xml-upload').files[0];
+                var csvFile = document.getElementById('csv-upload').files[0];
+
+                var xmlReader = new FileReader();
+                xmlReader.onload = function() {
+                    var buffer = xmlReader.result;
+                    var utf8Decoder = new TextDecoder("utf8");
+                    var utf8Data = utf8Decoder.decode(buffer);
+                    var uint8Array = new TextEncoder().encode(utf8Data);
+                    var decoder = new TextDecoder("iso-8859-1");
+                    var xmlString = decoder.decode(uint8Array);
+                    parseCSV(csvFile, xmlString);
+                };
+                xmlReader.readAsArrayBuffer(xmlFile);
+            });
+
+            function parseCSV(csvFile, xmlString) {
+                var csvReader = new FileReader();
+                csvReader.onload = function() {
+                    var csvString = csvReader.result;
+                    console.log("CSV content: ", csvString);
+
+                    let lines = csvString.split("\n");
+                    let qualisList = {};
+
+                    for(let i = 1; i < lines.length; i++) {
+                        let currentLine = lines[i].split(",");
+                        if(currentLine.length < 2) continue;
+
+                        let issn = currentLine[0].replace(/-/g, '');
+                        let grade = currentLine[currentLine.length - 1];
+                        qualisList[issn] = grade;
+                    }
+                    console.log("qualisList: ", qualisList);
+
+                    console.log(getQualisClassification(xmlString, qualisList));
+
+                    let result = getQualisClassification(xmlString, qualisList);
+                    document.getElementById('output').value = JSON.stringify(result, null, 2);
+                };
+                csvReader.readAsText(csvFile);
+            }
+
+            function getQualisClassification(xmlString, qualisList) {
+                let parser = new DOMParser();
+                let xmlDoc = parser.parseFromString(xmlString, "text/xml");
+
+                let records = xmlDoc.getElementsByTagName("ARTIGO-PUBLICADO");
+
+                let classifications = [];
+                for(let i = 0; i < records.length; i++) {
+                    let basicData = records[i].querySelector("DADOS-BASICOS-DO-ARTIGO");
+                    let articleDetails = records[i].querySelector("DETALHAMENTO-DO-ARTIGO");
+
+                    let articleTitle = basicData.getAttribute("TITULO-DO-ARTIGO") || "N/A";
+                    let journalTitle = articleDetails.getAttribute("TITULO-DO-PERIODICO-OU-REVISTA") || "N/A";
+                    let issn = articleDetails.getAttribute("ISSN") || "N/A";
+
+                    if(qualisList[issn]) {
+                        classifications.push({ 'TITULO-DO-ARTIGO': articleTitle, 'TITULO-DO-PERIODICO-OU-REVISTA': journalTitle, 'ISSN': issn, 'Grade': qualisList[issn] });
+                    } else {
+                        classifications.push({ 'TITULO-DO-ARTIGO': articleTitle, 'TITULO-DO-PERIODICO-OU-REVISTA': journalTitle, 'ISSN': issn, 'Grade': "N/A" });
+                    }
+                }
+
+                // Sort the array based on the 'Grade' property
+                classifications.sort(function(a, b) {
+                    return a.Grade.localeCompare(b.Grade);
+                });
+
+                return classifications;
+            }
+
+            function copyToClipboard() {
+                /* Get the text field */
+                var copyText = document.getElementById("output");
+
+                /* Select the text field */
+                copyText.select();
+                copyText.setSelectionRange(0, 99999); /* For mobile devices */
+
+                /* Copy the text inside the text field */
+                document.execCommand("copy");
+
+                /* Alert the copied text */
+                alert("Copied the text: " + copyText.value);
+            }
+
+        </script>
+    </body>
+</html>
