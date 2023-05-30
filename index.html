@@ -13,10 +13,6 @@
                 Upload XML:
                 <input type="file" id="xml-upload" accept=".xml">
             </label>
-            <label>
-                Upload CSV:
-                <input type="file" id="csv-upload" accept=".csv">
-            </label>
             <button type="submit">Submit</button>
         </form>
 
@@ -24,50 +20,45 @@
         <button onclick="copyToClipboard()">Copy to Clipboard</button>
 
         <script>
+            // Fetch the CSV from the repository
+            fetch('https://lattes-tools.github.io/qualis.csv')
+                .then(response => response.text())
+                .then(data => {
+                    window.csvString = data;
+                });
+
             document.getElementById('upload-form').addEventListener('submit', function(e) {
                 e.preventDefault();
                 var xmlFile = document.getElementById('xml-upload').files[0];
-                var csvFile = document.getElementById('csv-upload').files[0];
 
                 var xmlReader = new FileReader();
                 xmlReader.onload = function() {
                     var buffer = xmlReader.result;
-
-                    // var utf8Decoder = new TextDecoder("utf8");
-                    // var utf8Data = utf8Decoder.decode(buffer);
-                    // var uint8Array = new TextEncoder().encode(utf8Data);
                     var decoder = new TextDecoder("iso-8859-1");
                     var xmlString = decoder.decode(buffer);                    
-                    parseCSV(csvFile, xmlString);
+                    parseCSV(window.csvString, xmlString);
                 };
                 xmlReader.readAsArrayBuffer(xmlFile);
             });
 
-            function parseCSV(csvFile, xmlString) {
-                var csvReader = new FileReader();
-                csvReader.onload = function() {
-                    var csvString = csvReader.result;
-                    console.log("CSV content: ", csvString);
+            function parseCSV(csvString, xmlString) {
+                let lines = csvString.split("\n");
+                let qualisList = {};
 
-                    let lines = csvString.split("\n");
-                    let qualisList = {};
+                for(let i = 1; i < lines.length; i++) {
+                    let currentLine = lines[i].split(",");
+                    if(currentLine.length < 2) continue;
 
-                    for(let i = 1; i < lines.length; i++) {
-                        let currentLine = lines[i].split(",");
-                        if(currentLine.length < 2) continue;
+                    let issn = currentLine[0].replace(/-/g, '');
+                    let grade = currentLine[currentLine.length - 1];
+                    qualisList[issn] = grade;
+                }
+                console.log("qualisList: ", qualisList);
 
-                        let issn = currentLine[0].replace(/-/g, '');
-                        let grade = currentLine[currentLine.length - 1];
-                        qualisList[issn] = grade;
-                    }
-                    console.log("qualisList: ", qualisList);
+                console.log(getQualisClassification(xmlString, qualisList));
 
-                    console.log(getQualisClassification(xmlString, qualisList));
-
-                    let result = getQualisClassification(xmlString, qualisList);
-                    document.getElementById('output').value = JSON.stringify(result, null, 2);
-                };
-                csvReader.readAsText(csvFile);
+                let result = getQualisClassification(xmlString, qualisList);
+                document.getElementById('output').value = JSON.stringify(result, null, 2);
             }
 
             function getQualisClassification(xmlString, qualisList) {
