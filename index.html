@@ -36,11 +36,9 @@
                     // var utf8Decoder = new TextDecoder("utf8");
                     // var utf8Data = utf8Decoder.decode(buffer);
                     // var uint8Array = new TextEncoder().encode(utf8Data);
-                    // var decoder = new TextDecoder("iso-8859-1");
-                    // var xmlString = decoder.decode(uint8Array);                    
-                    // parseCSV(csvFile, xmlString);
-
-                    parseCSV(csvFile, buffer);
+                    var decoder = new TextDecoder("iso-8859-1");
+                    var xmlString = decoder.decode(buffer);                    
+                    parseCSV(csvFile, xmlString);
                 };
                 xmlReader.readAsArrayBuffer(xmlFile);
             });
