@@ -1,0 +1,35 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.content {
+    max-width: 600px;
+    margin: auto;
+}
+
+.description {
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+#upload-form {
+    margin-bottom: 10px;
+}
+
+#output {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+a {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}

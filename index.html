@@ -1,111 +1,41 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Qualis Classification</title>
+        <title>Classificação Qualis</title>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
         <link href="https://cdn.jsdelivr.net/npm/papaparse@5/player/player.min.css" rel="stylesheet">
+        <link href="styles.css" rel="stylesheet">
     </head>
     <body>
-        <h1>Qualis Classification</h1>
-        <form id="upload-form">
-            <label>
-                Upload XML:
-                <input type="file" id="xml-upload" accept=".xml">
-            </label>
-            <button type="submit">Submit</button>
-        </form>
+        <div class="content">
+            <h1>Classificação Qualis</h1>
 
-        <textarea id="output" rows="10" cols="50"></textarea>
-        <button onclick="copyToClipboard()">Copy to Clipboard</button>
+            <div class="description">
+                <p>Este aplicativo permite que você classifique artigos de um CV Lattes com base em dados Qualis. Para usar, siga as seguintes etapas:</p>
+                <ol>
+                    <li>Faça upload de um arquivo XML com o CV Lattes. Para obter o CV no formato XML, navegue até seu Lattes e clique no botão `XML` no canto superior direito da página.</li>
+                    <li>Após o upload do arquivo XML, clique em "Enviar".</li>
+                    <li>O aplicativo irá processar o arquivo e classificar os artigos com base nos dados Qualis.</li>
+                    <li>Os resultados serão exibidos na caixa de texto abaixo do botão de envio. Você pode copiar os resultados para a área de transferência clicando em "Copiar para a área de transferência".</li>
+                </ol>
+            </div>
 
-        <script>
-            // Fetch the CSV from the repository
-            fetch('https://lattes-tools.github.io/qualis.csv')
-                .then(response => response.text())
-                .then(data => {
-                    window.csvString = data;
-                });
+            <form id="upload-form">
+                <label>
+                    Fazer upload CV Lattes em XML:
+                    <input type="file" id="xml-upload" accept=".xml">
+                </label>
+                <button type="submit">Enviar</button>
+            </form>
 
-            document.getElementById('upload-form').addEventListener('submit', function(e) {
-                e.preventDefault();
-                var xmlFile = document.getElementById('xml-upload').files[0];
+            <textarea id="output" rows="10" cols="50"></textarea>
+            <button onclick="copyToClipboard()">Copiar para a área de transferência</button>
+            
+            <p>Para contribuições e reportar problemas, por favor, acesse nosso <a href="https://github.com/Lattes-Tools/lattes-tools.github.io">repositório no GitHub</a>.</p>
+        </div>
 
-                var xmlReader = new FileReader();
-                xmlReader.onload = function() {
-                    var buffer = xmlReader.result;
-                    var decoder = new TextDecoder("iso-8859-1");
-                    var xmlString = decoder.decode(buffer);                    
-                    parseCSV(window.csvString, xmlString);
-                };
-                xmlReader.readAsArrayBuffer(xmlFile);
-            });
-
-            function parseCSV(csvString, xmlString) {
-                let lines = csvString.split("\n");
-                let qualisList = {};
-
-                for(let i = 1; i < lines.length; i++) {
-                    let currentLine = lines[i].split(",");
-                    if(currentLine.length < 2) continue;
-
-                    let issn = currentLine[0].replace(/-/g, '');
-                    let grade = currentLine[currentLine.length - 1];
-                    qualisList[issn] = grade;
-                }
-                console.log("qualisList: ", qualisList);
-
-                console.log(getQualisClassification(xmlString, qualisList));
-
-                let result = getQualisClassification(xmlString, qualisList);
-                document.getElementById('output').value = JSON.stringify(result, null, 2);
-            }
-
-            function getQualisClassification(xmlString, qualisList) {
-                let parser = new DOMParser();
-                let xmlDoc = parser.parseFromString(xmlString, "text/xml");
-
-                let records = xmlDoc.getElementsByTagName("ARTIGO-PUBLICADO");
-
-                let classifications = [];
-                for(let i = 0; i < records.length; i++) {
-                    let basicData = records[i].querySelector("DADOS-BASICOS-DO-ARTIGO");
-                    let articleDetails = records[i].querySelector("DETALHAMENTO-DO-ARTIGO");
-
-                    let articleTitle = basicData.getAttribute("TITULO-DO-ARTIGO") || "N/A";
-                    let journalTitle = articleDetails.getAttribute("TITULO-DO-PERIODICO-OU-REVISTA") || "N/A";
-                    let issn = articleDetails.getAttribute("ISSN") || "N/A";
-
-                    if(qualisList[issn]) {
-                        classifications.push({ 'TITULO-DO-ARTIGO': articleTitle, 'TITULO-DO-PERIODICO-OU-REVISTA': journalTitle, 'ISSN': issn, 'Grade': qualisList[issn] });
-                    } else {
-                        classifications.push({ 'TITULO-DO-ARTIGO': articleTitle, 'TITULO-DO-PERIODICO-OU-REVISTA': journalTitle, 'ISSN': issn, 'Grade': "N/A" });
-                    }
-                }
-
-                // Sort the array based on the 'Grade' property
-                classifications.sort(function(a, b) {
-                    return a.Grade.localeCompare(b.Grade);
-                });
-
-                return classifications;
-            }
-
-            function copyToClipboard() {
-                /* Get the text field */
-                var copyText = document.getElementById("output");
-
-                /* Select the text field */
-                copyText.select();
-                copyText.setSelectionRange(0, 99999); /* For mobile devices */
-
-                /* Copy the text inside the text field */
-                document.execCommand("copy");
-
-                /* Alert the copied text */
-                alert("Copied the text: " + copyText.value);
-            }
-
-        </script>
+        <script src="main.js"></script>
     </body>
 </html>
